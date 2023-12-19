@@ -1,31 +1,27 @@
-"""
-Amitoz AZAD 2022-04-18 10:14
-"""
-
 from setuptools import setup, find_packages
 
 install_requires = [
     'numpy',
     'tqdm',
     'scipy',
-    'scikit-image',
-    'matplotlib',
+    'SimpleITK',
 ]
 
 setup(
-    name="pyinpaint",
-    version="1.0.0",
-    description="A lightweight image inpainting tool",
-    url="https://github.com/aGIToz/PyInpaint",
+    name="PyInpaint_V2",
+    version="1.2.0",
+    description="An enhanced lightweight image inpainting tool",
+    url="https://github.com/jsaid00/PyInpaint",
     python_requires='>=3.6',
     install_requires=install_requires,
     packages=find_packages(),
-    author="Amitoz AZAD",
+    author="Jawher Said",  # Your name
+    author_email="said@zib.de",  # Your email
     license="MIT",
     include_package_data=True,
     entry_points={
         "console_scripts": [
-        "pyinpaint=pyinpaint.__main__:main",
+            "pyinpaint=pyinpaint.__main__:main",  # Update if the path has changed
         ]
-        },
-    )
+    },
+)

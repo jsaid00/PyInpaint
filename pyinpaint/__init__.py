@@ -1,6 +1,6 @@
-from .inpaint import Inpaint
+from .inpaint import Inpainting
 
 
 __all__ = [
-        'Inpaint',
+        'Inpainting',
           ]
