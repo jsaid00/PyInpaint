@@ -4,16 +4,15 @@ Amitoz AZAD 2022-04-19 06:59
 
 import os
 import argparse
-
+import SimpleITK as sitk
 import matplotlib.pyplot as plt
-
-from pyinpaint import Inpaint
+from pyinpaint.inpaint import Inpainting
 
 
 def modify(path):
     file_name = os.path.splitext(path)[0]
     file_extension = os.path.splitext(path)[1]
-    path = file_name +"_inpainted" + file_extension
+    path = file_name + "_inpainted" + file_extension
     return path
 
 
@@ -31,11 +30,10 @@ def main():
 
     args = argparser.parse_args()
 
-    inpaint = Inpaint(args.org_img, args.mask, args.ps)
-    inpainted_img = inpaint(args.k_boundary, args.k_search, args.k_patch)
+    inpainted_img = Inpainting(args.org_img, args.mask)
 
     path_to_output = modify(args.org_img) 
-    plt.imsave(path_to_output, inpainted_img)
+    sitk.WriteImage(inpainted_img, path_to_output)
 
 
 if __name__ == "__main__":

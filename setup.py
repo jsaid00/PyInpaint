@@ -8,7 +8,7 @@ install_requires = [
 ]
 
 setup(
-    name="PyInpaint_V2",
+    name="PyInpaint",
     version="1.2.0",
     description="An enhanced lightweight image inpainting tool",
     url="https://github.com/jsaid00/PyInpaint",

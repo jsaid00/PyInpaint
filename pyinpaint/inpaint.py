@@ -1,6 +1,8 @@
 import numpy as np
 from scipy import spatial
 from numpy.lib.stride_tricks import as_strided
+import matplotlib.image as mpimg
+import SimpleITK as sitk
 
 
 def create_patches(img, patch_shape=(3, 3)):
@@ -91,21 +93,11 @@ def preprocessing(img, mask, patch_size):
     return img, mask, patch_size, shape, position, texture, patches
 
 
-def Inpainting(img, mask, patch_size=7, k_boundary=4, k_search=1000, k_patch=5):
-    """
-    Inpaints an image using a patch-based technique.
+def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000, k_patch=5):
 
-    Args:
-        img (numpy.ndarray): The image to be inpainted.
-        mask (numpy.ndarray): The mask indicating areas to inpaint.
-        patch_size (int, optional): Size of the patches. Defaults to 7.
-        k_boundary (int, optional): Number of neighbors to consider at the boundary. Defaults to 4.
-        k_search (int, optional): Number of nearest neighbors to search for in the KD-tree. Defaults to 1000.
-        k_patch (int, optional): Number of patches to consider for comparison. Defaults to 5.
-
-    Returns:
-        numpy.ndarray: The inpainted image.
-    """
+    # Read the image and mask from the specified paths
+    img = mpimg.imread(image_path)
+    mask = mpimg.imread(mask_path)
 
     # Automatically determine if the mask is inverted
     if np.mean(mask) < 0.5:
@@ -164,5 +156,10 @@ def Inpainting(img, mask, patch_size=7, k_boundary=4, k_search=1000, k_patch=5):
         in_A[dmA] = False  # Mark newly inpainted pixels as not in A
         in_dA[dmA] = True  # Mark newly inpainted pixels as in dA
 
-    image_inpainted = np.reshape(texture, shape)  # reshape the inpainted image
-    return (image_inpainted * 255).astype('uint8')  # Rescale the image to 0-255 and convert to uint8
+    # reshape the inpainted image
+    image_inpainted = np.reshape(texture, shape)
+
+    # Rescale the image to 0-255 and convert to uint8
+    image_inpainted = (image_inpainted * 255).astype('uint8')
+
+    return sitk.GetImageFromArray(image_inpainted.astype('uint8'))  # Convert the inpainted image to SimpleITK format
