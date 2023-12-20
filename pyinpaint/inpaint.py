@@ -118,7 +118,6 @@ def forward(position, texture, patches, shape, patch_size, k_boundary, k_search,
 
     # Initialize boolean arrays to keep track of pixels to inpaint (A) and inpainted pixels (dA)
     in_A = np.zeros(position_length, dtype=bool)
-    in_dA = np.zeros(position_length, dtype=bool)
 
     # Identify initial inpainting areas based on the mask
     initial_A_positions = np.where(~texture.any(axis=1))[0]
@@ -161,7 +160,6 @@ def forward(position, texture, patches, shape, patch_size, k_boundary, k_search,
 
         # Update boolean arrays to track inpainted areas
         in_A[dmA] = False  # Mark newly inpainted pixels as not in A
-        in_dA[dmA] = True  # Mark newly inpainted pixels as in dA
 
     progress_bar.close()
     return texture
