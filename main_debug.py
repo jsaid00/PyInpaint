@@ -1,6 +1,7 @@
-from pyinpaint.inpaint import Inpainting
-import SimpleITK as sitk
 import os
+from pyinpaint.inpaint import Inpainting
+import matplotlib.image as mpimg
+from PIL import Image
 
 
 def inpaint_image(image_path, mask_path_):
@@ -11,27 +12,32 @@ def inpaint_image(image_path, mask_path_):
     - image_path (str): Path to the original image file.
     - mask_path (str): Path to the mask image file.
     """
+    # Read the image and mask from the specified paths
+    image = mpimg.imread(image_path)
+    mask = mpimg.imread(mask_path_)
 
     # Perform inpainting on the image using the mask
-    image_inpainted = Inpainting(image_path, mask_path_)
+    image_inpainted = Inpainting(image, mask)
 
     # Construct the output file path
     file_name, file_extension = os.path.splitext(image_path)
     output_path = f"{file_name}_inpainted{file_extension}"
 
-    # Convert the inpainted image to SimpleITK format and save it
-    sitk.WriteImage(image_inpainted, output_path)
+    # Convert the image data to a Pillow Image object
+    inpaint_result_image = Image.fromarray(image_inpainted)
+
+    # Save the image using Pillow
+    inpaint_result_image.save(output_path)
 
 
 def main():
     # Set the paths relative to the current script's directory
     script_dir = os.path.dirname(__file__)  # Gets the directory where the script is located
-    root_dir = os.path.dirname(script_dir)  # Navigates up to the root directory (PyInpaint)
-    img_path = os.path.join(root_dir, "data/image.bmp")
-    mask_path = os.path.join(root_dir, "data/mask.bmp")
+    image_path = os.path.join(script_dir, "data/image.bmp")
+    mask_path = os.path.join(script_dir, "data/mask.bmp")
 
     # Call the inpainting function with the image and mask paths
-    inpaint_image(img_path, mask_path)
+    inpaint_image(image_path, mask_path)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,31 @@
-import SimpleITK as sitk
 import numpy as np
-from numpy.lib.stride_tricks import as_strided
 from scipy import spatial
 from tqdm import tqdm
+import matplotlib.image as mpimg
+from PIL import Image
+from numpy.lib.stride_tricks import as_strided
 
 
-def create_patches(img, patch_shape=(3, 3)):
+def position_matrix(shape):
+    """
+     Generates a position matrix for the image.
+
+     Args:
+         shape (tuple): Shape of the image (height, width).
+
+     Returns:
+         numpy.ndarray: Position matrix with each row corresponding to the position of a pixel.
+     """
+    # Extract height and width, ignoring color channels if present.
+    shape = shape[:2]
+    # Create a meshgrid for each dimension in shape
+    grids = np.meshgrid(*[np.arange(s) for s in shape], indexing='ij')
+
+    # Stack and reshape the grids to form the position matrix
+    return np.stack(grids, axis=-1).reshape(-1, len(shape))
+
+
+def create_patches(img, patch_shape=(3, 3, 3)):
     """
     Creates patches from the input image.
 
@@ -16,7 +36,6 @@ def create_patches(img, patch_shape=(3, 3)):
     Returns:
         numpy.ndarray: Array of image patches.
     """
-
     # Convert grayscale to 3D by adding a channel dimension if necessary
     if img.ndim == 2:
         img = img[:, :, np.newaxis]
@@ -44,90 +63,55 @@ def create_patches(img, patch_shape=(3, 3)):
     return patches
 
 
-def position_matrix(shape):
+# Function to preprocess the image
+def preprocess(img, mask_, patch_size):
     """
-    Generates a position matrix for the image.
+    Preprocesses the image for inpainting by normalizing and masking.
 
     Args:
-        shape (tuple): Shape of the image (height, width).
+        img (numpy.ndarray): The input image.
+        mask_ (numpy.ndarray): Mask to indicate the area to inpaint.
+        patch_size (int): Patch size.
 
     Returns:
-        numpy.ndarray: Position matrix with each row corresponding to the position of a pixel.
+        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, tuple]: Processed position, texture, patches, and shape of the image.
     """
-
-    # Create a meshgrid for each dimension in shape
-    grids = np.meshgrid(*[np.arange(s) for s in shape], indexing='ij')
-
-    # Stack and reshape the grids to form the position matrix
-    return np.stack(grids, axis=-1).reshape(-1, len(shape))
-
-
-def preprocessing(img, mask, patch_size):
-    """
-    Prepares the image, mask, and patch data for inpainting.
-
-    Args:
-        img (numpy.ndarray): The image to be inpainted.
-        mask (numpy.ndarray): The mask indicating areas to inpaint.
-        patch_size (int): Size of the patches to use.
-
-    Returns:
-        tuple: Contains prepared image, mask, and patch data.
-    """
-
-    # Normalize and mask the image
-    img = (img - np.min(img)) / (np.max(img) - np.min(img)).astype("float32") + 0.01
-    img = (img.T * mask.T).T
+    # Normalize the image to a range of 0 to 1.
+    img = (img - np.min(img)) / (np.max(img) - np.min(img)) + 0.01
+    # Apply the mask to the image.
+    img = (img.T * mask_.T).T
+    # Store the shape of the image.
     shape = img.shape
-
-    # Generate position and texture matrices
+    # Generate a position matrix for the image.
     position = position_matrix(shape)
+    # Flatten the image for processing.
     texture = img.reshape(-1, img.shape[-1] if img.ndim == 3 else 1)
-    pos_min, pos_max = np.min(position), np.max(position)
-    text_min, text_max = np.min(texture), np.max(texture)
-    position = (position - pos_min) / (pos_max - pos_min)
-    texture = (texture - text_min) / (text_max - text_min)
-
-    # Create image patches
+    # Normalize position and texture to a range of 0 to 1.
+    position = (position - np.min(position)) / (np.max(position) - np.min(position))
+    texture = (texture - np.min(texture)) / (np.max(texture) - np.min(texture))
+    # Create patches of the image.
     patches = create_patches(img, (patch_size, patch_size))
-    return img, mask, patch_size, shape, position, texture, patches
+    return position, texture, patches, shape
 
 
-def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000, k_patch=5):
+# Function for the inpainting forward pass
+def forward(position, texture, patches, shape, patch_size, k_boundary, k_search, k_patch):
     """
-    Performs inpainting on an image using the patch-based approach.
+    The inpainting forward pass, performing the actual inpainting.
 
     Args:
-        image_path (str): Path to the image file to be inpainted.
-        mask_path (str): Path to the mask file, which indicates the regions to inpaint.
-        patch_size (int, optional): Size of the square patch. Defaults to 7.
-        k_boundary (int, optional): Number of nearest neighbors to consider for boundary determination. Defaults to 4.
-        k_search (int, optional): Number of nearest neighbors to consider during the patch search phase. Defaults to 1000.
-        k_patch (int, optional): Number of nearest patches to consider for calculating the new patch value. Defaults to 5.
+        position (numpy.ndarray): Position matrix of the image.
+        texture (numpy.ndarray): Texture matrix of the image.
+        patches (numpy.ndarray): Patches of the image.
+        shape (tuple): Shape of the image.
+        patch_size (int): Size of the patches.
+        k_boundary (int): Number of nearest neighbors for boundary.
+        k_search (int): Number of nearest neighbors for search.
+        k_patch (int): Number of nearest neighbors for patch.
 
     Returns:
-        SimpleITK.Image: The inpainted image as a SimpleITK Image object.
+        numpy.ndarray: Inpainted texture matrix.
     """
-
-    # # Read the image and mask from the specified paths
-    # img = mpimg.imread(image_path)
-    # mask = mpimg.imread(mask_path)
-
-    img_itk = sitk.ReadImage(image_path)
-    mask_itk = sitk.ReadImage(mask_path)
-
-    img = sitk.GetArrayFromImage(img_itk)[:, :, 0]
-    mask = sitk.GetArrayFromImage(mask_itk)[:, :, 0]
-
-    # Automatically determine if the mask is inverted
-    if np.mean(mask) < 0.5:
-        # Invert mask if the white area is more than 50% of the mask
-        mask = (255 * ~mask).astype('uint8')
-
-    # Initial setup: loading images, creating position and texture matrices, and patches
-
-    img, mask, patch_size, shape, position, texture, patches = preprocessing(img, mask, patch_size)
-
     # Build a KD-tree for efficient spatial nearest neighbor search
     kdt = spatial.cKDTree(position)
     position_length = position.shape[0]
@@ -142,14 +126,10 @@ def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000,
 
     # Create a tqdm progress bar
     progress_bar = tqdm(total=in_A.sum(), desc="Inpainting Progress")
-
     # Inpainting loop: continues until all required pixels are inpainted
     while in_A.any():
         dmA = np.array([]).astype("int")  # Array to store newly inpainted pixels in this iteration
-        for i, is_in_A in enumerate(in_A):
-            if not is_in_A:
-                continue  # Skip already inpainted or not required pixels
-
+        for i in np.where(in_A)[0]:  # Iterate only over indices where in_A is True
             # Find boundary pixels using KD-tree
             _, indices = kdt.query(position[i], k_boundary)
 
@@ -158,14 +138,14 @@ def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000,
                 dmA = np.append(dmA, i)  # Add pixel to list of newly inpainted pixels
 
                 # Create a mask to keep track of non-zero elements in the patch
-                mask = (~(patches[i].flatten() == 0)).astype("int")
+                mask_ = (~(patches[i].flatten() == 0)).astype("int")
 
                 # Find nearest neighbors for the patch search
                 _, indices = kdt.query(position[i], k_search)
                 not_in_A_indices = indices[~in_A[indices]]
 
                 # Calculate new patch values based on nearest neighbors
-                new_patches = mask.flatten() * patches[not_in_A_indices]
+                new_patches = mask_.flatten() * patches[not_in_A_indices]
                 kdt_ = spatial.cKDTree(new_patches)
                 _, indices = kdt_.query(patches[i].flatten(), k_patch)
                 ids = not_in_A_indices[indices]
@@ -184,10 +164,33 @@ def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000,
         in_dA[dmA] = True  # Mark newly inpainted pixels as in dA
 
     progress_bar.close()
-    # reshape the inpainted image
-    image_inpainted = np.reshape(texture, shape)
+    return texture
 
-    # Rescale the image to 0-255 and convert to uint8
-    image_inpainted = (image_inpainted * 255).astype('uint8')
 
-    return sitk.GetImageFromArray(image_inpainted.astype('uint8'))  # Convert the inpainted image to SimpleITK format
+# Main inpainting function
+def Inpainting(image_array, mask_array, patch_size=7, k_boundary=4, k_search=1000, k_patch=5):
+    """
+    Main inpainting function. Orchestrates the inpainting process using the above functions.
+
+    Args:
+        image_array (numpy.ndarray): The input image.
+        mask_array (numpy.ndarray): The mask indicating regions to inpaint.
+        patch_size (int): Size of the patches used for inpainting.
+        k_boundary (int): Number of nearest neighbors to consider for boundary detection.
+        k_search (int): Number of nearest neighbors to search in the patch matching.
+        k_patch (int): Number of nearest neighbors to consider for each patch.
+
+    Returns:
+        numpy.ndarray: The inpainted image.
+    """
+
+    # Preprocess the image and mask.
+    position, texture, patches, shape = preprocess(image_array, mask_array, patch_size)
+
+    # Perform the inpainting forward pass.
+    texture = forward(position, texture, patches, shape, patch_size, k_boundary, k_search, k_patch)
+
+    # Reshape the texture to form the inpainted image.
+    inpainted_image = np.reshape(texture, shape)
+
+    return (inpainted_image * 255).astype(np.uint8)
