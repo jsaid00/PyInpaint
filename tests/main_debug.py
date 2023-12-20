@@ -3,7 +3,7 @@ import SimpleITK as sitk
 import os
 
 
-def inpaint_image(image_path, mask_path):
+def inpaint_image(image_path, mask_path_):
     """
     Inpaint an image using a specified mask and save the inpainted image.
 
@@ -13,7 +13,7 @@ def inpaint_image(image_path, mask_path):
     """
 
     # Perform inpainting on the image using the mask
-    image_inpainted = Inpainting(image_path, mask_path)
+    image_inpainted = Inpainting(image_path, mask_path_)
 
     # Construct the output file path
     file_name, file_extension = os.path.splitext(image_path)
@@ -23,9 +23,16 @@ def inpaint_image(image_path, mask_path):
     sitk.WriteImage(image_inpainted, output_path)
 
 
-# Specify the paths to the image and the mask
-img_path = "/Users/jawhersaid/Downloads/pythonProject2/PyInpaint/data/image.bmp"
-mask_path = "/Users/jawhersaid/Downloads/pythonProject2/PyInpaint/data/mask.bmp"
+def main():
+    # Set the paths relative to the current script's directory
+    script_dir = os.path.dirname(__file__)  # Gets the directory where the script is located
+    root_dir = os.path.dirname(script_dir)  # Navigates up to the root directory (PyInpaint)
+    img_path = os.path.join(root_dir, "data/image.bmp")
+    mask_path = os.path.join(root_dir, "data/mask.bmp")
 
-# Call the inpainting function with the image and mask paths
-inpaint_image(img_path, mask_path)
+    # Call the inpainting function with the image and mask paths
+    inpaint_image(img_path, mask_path)
+
+
+if __name__ == "__main__":
+    main()

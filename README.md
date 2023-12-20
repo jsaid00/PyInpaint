@@ -8,9 +8,9 @@ Inpainting is a process of image restoration, the idea is to fill the damage, de
 - Python
 
 ```python
-from pyinpaint import inpaint
+from pyinpaint.inpaint import Inpainting
 
-inpainted_img = Inpaint(image_array, mask_array, ps, k_boundary, k_search, k_patch)
+inpainted_img = Inpainting(image_path, mask_path, ps, k_boundary, k_search, k_patch)
 ```
 This returns a numpy array `inpainted_img`.
 

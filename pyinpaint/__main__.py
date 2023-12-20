@@ -4,13 +4,6 @@ import SimpleITK as sitk
 from pyinpaint.inpaint import Inpainting
 
 
-def modify(path):
-    file_name = os.path.splitext(path)[0]
-    file_extension = os.path.splitext(path)[1]
-    path = file_name + "_inpainted" + file_extension
-    return path
-
-
 def main():
     """
     Calls the inpaint module, and saves the inpainted image.
@@ -27,7 +20,10 @@ def main():
 
     inpainted_img = Inpainting(args.org_img, args.mask)
 
-    path_to_output = modify(args.org_img) 
+    # Modify the file path for the output image
+    file_name, file_extension = os.path.splitext(args.org_img)
+    path_to_output = file_name + "_inpainted" + file_extension
+
     sitk.WriteImage(inpainted_img, path_to_output)
 
 
