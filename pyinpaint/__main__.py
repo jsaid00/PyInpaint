@@ -1,11 +1,6 @@
-"""
-Amitoz AZAD 2022-04-19 06:59
-"""
-
 import os
 import argparse
 import SimpleITK as sitk
-import matplotlib.pyplot as plt
 from pyinpaint.inpaint import Inpainting
 
 

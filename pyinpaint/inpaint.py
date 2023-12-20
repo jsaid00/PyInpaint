@@ -1,8 +1,8 @@
-import numpy as np
-from scipy import spatial
-from numpy.lib.stride_tricks import as_strided
-import matplotlib.image as mpimg
 import SimpleITK as sitk
+import numpy as np
+from numpy.lib.stride_tricks import as_strided
+from scipy import spatial
+from tqdm import tqdm
 
 
 def create_patches(img, patch_shape=(3, 3)):
@@ -94,10 +94,30 @@ def preprocessing(img, mask, patch_size):
 
 
 def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000, k_patch=5):
+    """
+    Performs inpainting on an image using the patch-based approach.
 
-    # Read the image and mask from the specified paths
-    img = mpimg.imread(image_path)
-    mask = mpimg.imread(mask_path)
+    Args:
+        image_path (str): Path to the image file to be inpainted.
+        mask_path (str): Path to the mask file, which indicates the regions to inpaint.
+        patch_size (int, optional): Size of the square patch. Defaults to 7.
+        k_boundary (int, optional): Number of nearest neighbors to consider for boundary determination. Defaults to 4.
+        k_search (int, optional): Number of nearest neighbors to consider during the patch search phase. Defaults to 1000.
+        k_patch (int, optional): Number of nearest patches to consider for calculating the new patch value. Defaults to 5.
+
+    Returns:
+        SimpleITK.Image: The inpainted image as a SimpleITK Image object.
+    """
+
+    # # Read the image and mask from the specified paths
+    # img = mpimg.imread(image_path)
+    # mask = mpimg.imread(mask_path)
+
+    img_itk = sitk.ReadImage(image_path)
+    mask_itk = sitk.ReadImage(mask_path)
+
+    img = sitk.GetArrayFromImage(img_itk)[:, :, 0]
+    mask = sitk.GetArrayFromImage(mask_itk)[:, :, 0]
 
     # Automatically determine if the mask is inverted
     if np.mean(mask) < 0.5:
@@ -105,6 +125,7 @@ def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000,
         mask = (255 * ~mask).astype('uint8')
 
     # Initial setup: loading images, creating position and texture matrices, and patches
+
     img, mask, patch_size, shape, position, texture, patches = preprocessing(img, mask, patch_size)
 
     # Build a KD-tree for efficient spatial nearest neighbor search
@@ -118,6 +139,9 @@ def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000,
     # Identify initial inpainting areas based on the mask
     initial_A_positions = np.where(~texture.any(axis=1))[0]
     in_A[initial_A_positions] = True
+
+    # Create a tqdm progress bar
+    progress_bar = tqdm(total=in_A.sum(), desc="Inpainting Progress")
 
     # Inpainting loop: continues until all required pixels are inpainted
     while in_A.any():
@@ -149,6 +173,9 @@ def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000,
                 # Update the texture matrix with the average of best matching patches
                 texture[i] = texture[ids].mean(axis=0)
 
+                # Update the progress bar
+                progress_bar.update(1)
+
         # After each iteration, update patches with new texture values
         patches = create_patches(np.reshape(texture, shape), (patch_size, patch_size))
 
@@ -156,6 +183,7 @@ def Inpainting(image_path, mask_path, patch_size=7, k_boundary=4, k_search=1000,
         in_A[dmA] = False  # Mark newly inpainted pixels as not in A
         in_dA[dmA] = True  # Mark newly inpainted pixels as in dA
 
+    progress_bar.close()
     # reshape the inpainted image
     image_inpainted = np.reshape(texture, shape)
 

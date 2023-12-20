@@ -1,7 +1,6 @@
 from pyinpaint.inpaint import Inpainting
 import SimpleITK as sitk
 import os
-import matplotlib.image as mpimg
 
 
 def inpaint_image(image_path, mask_path):
