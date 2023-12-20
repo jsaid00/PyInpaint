@@ -33,8 +33,8 @@ def inpaint_image(image_path, mask_path_):
 def main():
     # Set the paths relative to the current script's directory
     script_dir = os.path.dirname(__file__)  # Gets the directory where the script is located
-    image_path = os.path.join(script_dir, "data/fly.png")
-    mask_path = os.path.join(script_dir, "data/fly_mask.png")
+    image_path = os.path.join(script_dir, "data/bone.bmp")
+    mask_path = os.path.join(script_dir, "data/bone_mask.bmp")
 
     # Call the inpainting function with the image and mask paths
     inpaint_image(image_path, mask_path)
