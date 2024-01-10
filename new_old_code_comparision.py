@@ -35,8 +35,8 @@ def compare_images(img_path1, img_path2):
 
 def main():
     # Paths to the images
-    old_image_path = 'data/lincoln_grayscale_inpainted_old.png'
-    new_image_path = 'data/lincoln_grayscale_inpainted.png'
+    old_image_path = 'data/lincoln_inpainted_old.png'
+    new_image_path = 'data/lincoln_inpainted_new.png'
 
     # Compare images visually
     compare_images(old_image_path, new_image_path)

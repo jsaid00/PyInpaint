@@ -3,7 +3,23 @@ A lightwieght image inpainting tool written in python. Simple and effective tool
 
 Inpainting is a process of image restoration, the idea is to fill the damage, deteriorated or missing part of an image to present a complete image. It can also be used to remove unwanted parts in an image. Deep learning based approaches use GANs to inpaint. This requires significant amount of training. The proposed tool quickly inpaints by solving a PDE on graphs. 
 
+## Installation
+- Build the package
+  ```bash
+  python setup.py sdist bdist_wheel
+  ```
+
+- Install the built package
+  ```bash
+  pip install dist/PyInpaint-1.2.0-py3-none-any.whl
+  ```
+
 ## Usage
+- Command line
+```python
+pyinpaint --org_img "path/to/original/image" --mask "path/to/mask"
+# pyinpaint --org_img  --mask  --ps --k_boundary --k_search --k_patch
+```
 
 - Python
 
