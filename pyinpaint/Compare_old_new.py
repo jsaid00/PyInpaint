@@ -1,3 +1,9 @@
+#### !!!!Remarques!!!: - make the PyInpaint directory as source root directory for the code to run
+####                   - Barbara image comparison is showing some difference at first run but if you run again is shows 0
+####                   - there is a problem with the grayscale images inpainting that should be fixed
+####                   - fix the notebook and make sure the code is running as a command line
+
+
 import os
 from matplotlib import pyplot as plt, image as mpimg
 from pyinpaint.inpaint import *
@@ -9,7 +15,7 @@ def modify_path(path):
 
 
 def compare_images(img_path1, img_path2, image_name):
-    # Ensure the images are read as uint8
+    # read images
     image_array1 = mpimg.imread(img_path1)
     image_array2 = mpimg.imread(img_path2)
 
